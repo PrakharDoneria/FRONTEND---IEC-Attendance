@@ -3,6 +3,7 @@ import 'package:shared_preferences/shared_preferences.dart';
 import 'package:http/http.dart' as http;
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 class AttendancePage extends StatefulWidget {
   @override
@@ -61,6 +62,10 @@ class _AttendancePageState extends State<AttendancePage> {
     if (response.statusCode == 200) {
       setState(() {
         students = List<Map<String, dynamic>>.from(json.decode(response.body));
+        // Initialize the status of each student as false (Absent).
+        students.forEach((student) {
+          student['status'] = false;
+        });
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -84,7 +89,7 @@ class _AttendancePageState extends State<AttendancePage> {
       return {
         'roll_number': student['roll_number'],
         'name': student['name'],
-        'status': (student['status'] ?? false) ? 'Present' : 'Absent',
+        'status': student['status'] ? 'Present' : 'Absent',
         'class_number': classNumber,
         'subject_code': subjectCode,
       };
@@ -102,7 +107,8 @@ class _AttendancePageState extends State<AttendancePage> {
 
     if (response.statusCode == 201) {
       final result = json.decode(response.body);
-      _saveAttendanceHistory('Class: $classNumber, Subject: $subjectCode, Link: ${result['link']}');
+      _saveAttendanceHistory(
+          'Class: $classNumber, Subject: $subjectCode, Link: ${result['link']}');
 
       showModalBottomSheet(
         context: context,
@@ -124,6 +130,19 @@ class _AttendancePageState extends State<AttendancePage> {
                     );
                   },
                   child: Text('Copy Link'),
+                ),
+                SizedBox(height: 8),
+                ElevatedButton(
+                  onPressed: () async {
+                    if (await canLaunch(result['link'])) {
+                      await launch(result['link']);
+                    } else {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(content: Text('Could not open the link.')),
+                      );
+                    }
+                  },
+                  child: Text('Open Link'),
                 ),
                 SizedBox(height: 8),
                 ElevatedButton(
@@ -181,6 +200,12 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
+  void _toggleAttendance(int index) {
+    setState(() {
+      students[index]['status'] = !students[index]['status'];
+    });
+  }
+
   void _showStudentDetails(Map<String, dynamic> student) {
     showDialog(
       context: context,
@@ -191,7 +216,7 @@ class _AttendancePageState extends State<AttendancePage> {
             mainAxisSize: MainAxisSize.min,
             children: [
               Text('Roll Number: ${student['roll_number']}'),
-              Text('Status: ${(student['status'] ?? false) ? 'Present' : 'Absent'}'),
+              Text('Status: ${student['status'] ? 'Present' : 'Absent'}'),
             ],
           ),
           actions: <Widget>[
@@ -211,7 +236,8 @@ class _AttendancePageState extends State<AttendancePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Take Attendance', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text('Take Attendance',
+            style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
       ),
       body: Stack(
         children: [
@@ -233,7 +259,8 @@ class _AttendancePageState extends State<AttendancePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
@@ -251,6 +278,12 @@ class _AttendancePageState extends State<AttendancePage> {
                         elevation: 2,
                         child: ListTile(
                           title: Text('${student['name']}'),
+                          trailing: Switch(
+                            value: student['status'],
+                            onChanged: (value) {
+                              _toggleAttendance(index);
+                            },
+                          ),
                           onLongPress: () => _showStudentDetails(student),
                         ),
                       );
@@ -261,7 +294,8 @@ class _AttendancePageState extends State<AttendancePage> {
                 ElevatedButton(
                   style: ElevatedButton.styleFrom(
                     backgroundColor: Colors.blue,
-                    padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
+                    padding:
+                        EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8.0),
                     ),
