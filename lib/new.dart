@@ -40,10 +40,8 @@ class _NewStudentPageState extends State<NewStudentPage> {
           });
         });
 
-        // Clear the text fields after adding
         nameController.clear();
-        classController.clear();
-        rollNumberController.clear();
+        rollNumberController.clear(); // Keep class input value
 
         ScaffoldMessenger.of(context).showSnackBar(SnackBar(
           content: Text('Student added successfully!'),
@@ -64,69 +62,28 @@ class _NewStudentPageState extends State<NewStudentPage> {
     }
   }
 
-  void uploadStudentList() {
-    ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-      content: Text('Upload student list functionality to be implemented.'),
-    ));
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: Text('Add New Students', style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        title: Text(
+          'Add New Students',
+          style: TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+        ),
+        backgroundColor: Colors.blueAccent,
+        elevation: 8.0,
       ),
       body: Padding(
         padding: const EdgeInsets.all(16.0),
         child: Column(
           children: [
-            Card(
-              elevation: 4,
-              child: TextField(
-                controller: nameController,
-                decoration: InputDecoration(
-                  labelText: 'Name',
-                  contentPadding: EdgeInsets.all(12.0),
-                ),
-              ),
-            ),
+            _buildInputField(nameController, 'Name', Icons.person),
             SizedBox(height: 10),
-            Card(
-              elevation: 4,
-              child: TextField(
-                controller: classController,
-                decoration: InputDecoration(
-                  labelText: 'Class',
-                  contentPadding: EdgeInsets.all(12.0),
-                ),
-              ),
-            ),
+            _buildInputField(classController, 'Class', Icons.class_),
             SizedBox(height: 10),
-            Card(
-              elevation: 4,
-              child: TextField(
-                controller: rollNumberController,
-                decoration: InputDecoration(
-                  labelText: 'Roll Number',
-                  contentPadding: EdgeInsets.all(12.0),
-                ),
-              ),
-            ),
+            _buildInputField(rollNumberController, 'Roll Number', Icons.confirmation_number),
             SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-              onPressed: addStudent,
-              child: Text(
-                'Add Student',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
+            _buildActionButton('Add Student', addStudent, Colors.blueAccent),
             SizedBox(height: 20),
             Expanded(
               child: ListView.builder(
@@ -135,31 +92,58 @@ class _NewStudentPageState extends State<NewStudentPage> {
                   final student = students[index];
                   return Card(
                     elevation: 2,
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(8.0),
+                    ),
                     child: ListTile(
-                      title: Text('${student['name']} (${student['roll_number']})'),
+                      leading: Icon(Icons.person, color: Colors.blueAccent),
+                      title: Text(
+                        '${student['name']} (${student['roll_number']})',
+                        style: TextStyle(fontWeight: FontWeight.w500),
+                      ),
                       subtitle: Text('Class: ${student['class']}'),
                     ),
                   );
                 },
               ),
             ),
-            SizedBox(height: 20),
-            ElevatedButton(
-              style: ElevatedButton.styleFrom(
-                backgroundColor: Colors.blue,
-                padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 12.0),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(8.0),
-                ),
-              ),
-              onPressed: uploadStudentList,
-              child: Text(
-                'Upload Students List',
-                style: TextStyle(fontSize: 16),
-              ),
-            ),
           ],
         ),
+      ),
+    );
+  }
+
+  Widget _buildInputField(TextEditingController controller, String label, IconData icon) {
+    return Card(
+      elevation: 4,
+      shape: RoundedRectangleBorder(
+        borderRadius: BorderRadius.circular(12.0),
+      ),
+      child: TextField(
+        controller: controller,
+        decoration: InputDecoration(
+          prefixIcon: Icon(icon, color: Colors.blueAccent),
+          labelText: label,
+          contentPadding: EdgeInsets.all(12.0),
+          border: InputBorder.none,
+        ),
+      ),
+    );
+  }
+
+  Widget _buildActionButton(String label, VoidCallback onPressed, Color color) {
+    return ElevatedButton(
+      style: ElevatedButton.styleFrom(
+        backgroundColor: color,
+        padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 14.0),
+        shape: RoundedRectangleBorder(
+          borderRadius: BorderRadius.circular(8.0),
+        ),
+      ),
+      onPressed: onPressed,
+      child: Text(
+        label,
+        style: TextStyle(fontSize: 16, color: Colors.white),
       ),
     );
   }
