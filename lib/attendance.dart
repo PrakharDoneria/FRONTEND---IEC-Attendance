@@ -12,10 +12,13 @@ class AttendancePage extends StatefulWidget {
 
 class _AttendancePageState extends State<AttendancePage> {
   List<Map<String, dynamic>> students = [];
+  List<Map<String, dynamic>> filteredStudents = [];
   String classNumber = '';
   String subjectCode = '';
   bool isLoading = false;
   List<String> attendanceHistory = [];
+  String searchType = 'roll_number';
+  String searchQuery = '';
 
   @override
   void initState() {
@@ -62,10 +65,10 @@ class _AttendancePageState extends State<AttendancePage> {
     if (response.statusCode == 200) {
       setState(() {
         students = List<Map<String, dynamic>>.from(json.decode(response.body));
-        // Initialize the status of each student as false (Absent).
         students.forEach((student) {
           student['status'] = false;
         });
+        filteredStudents = students;
       });
     } else {
       ScaffoldMessenger.of(context).showSnackBar(SnackBar(
@@ -232,12 +235,81 @@ class _AttendancePageState extends State<AttendancePage> {
     );
   }
 
+  void _filterStudents() {
+    setState(() {
+      if (searchType == 'name') {
+        filteredStudents = students
+            .where((student) => student['name']
+                .toLowerCase()
+                .contains(searchQuery.toLowerCase()))
+            .toList();
+      } else {
+        filteredStudents = students
+            .where((student) =>
+                student['roll_number'].toString().contains(searchQuery))
+            .toList();
+      }
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
         title: Text('Take Attendance',
             style: TextStyle(fontSize: 20, fontWeight: FontWeight.bold)),
+        actions: students.isNotEmpty
+            ? [
+                IconButton(
+                  icon: Icon(Icons.search),
+                  onPressed: () {
+                    showSearch(
+                      context: context,
+                      delegate: StudentSearchDelegate(
+                        students: students,
+                        searchType: searchType,
+                        onSearchChanged: (value) {
+                          searchQuery = value;
+                          _filterStudents();
+                        },
+                        markAttendance: markAttendance,
+                        toggleAttendance: (index) {
+                          _toggleAttendance(filteredStudents.indexOf(filteredStudents[index]));
+                        },
+                      ),
+                    );
+                  },
+                ),
+                PopupMenuButton<String>(
+                  onSelected: (value) {
+                    setState(() {
+                      searchType = value;
+                      _filterStudents();
+                    });
+                  },
+                  itemBuilder: (context) => [
+                    PopupMenuItem(
+                      value: 'name',
+                      child: Row(
+                        children: [
+                          Text('Search by Name'),
+                          if (searchType == 'name') Icon(Icons.check),
+                        ],
+                      ),
+                    ),
+                    PopupMenuItem(
+                      value: 'roll_number',
+                      child: Row(
+                        children: [
+                          Text('Search by Roll Number'),
+                          if (searchType == 'roll_number') Icon(Icons.check),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ]
+            : [],
       ),
       body: Stack(
         children: [
@@ -266,7 +338,7 @@ class _AttendancePageState extends State<AttendancePage> {
                     ),
                   ),
                   onPressed: getStudents,
-                  child: Text('Load Students'),
+                  child: Text('Get Students'),
                 ),
                 SizedBox(height: 20),
                 Expanded(
@@ -274,18 +346,16 @@ class _AttendancePageState extends State<AttendancePage> {
                     itemCount: students.length,
                     itemBuilder: (context, index) {
                       final student = students[index];
-                      return Card(
-                        elevation: 2,
-                        child: ListTile(
-                          title: Text('${student['name']}'),
-                          trailing: Switch(
-                            value: student['status'],
-                            onChanged: (value) {
-                              _toggleAttendance(index);
-                            },
-                          ),
-                          onLongPress: () => _showStudentDetails(student),
+                      return ListTile(
+                        title: Text('${student['name']}'),
+                        subtitle: Text('Roll Number: ${student['roll_number']}'),
+                        trailing: Switch(
+                          value: student['status'],
+                          onChanged: (value) {
+                            _toggleAttendance(index);
+                          },
                         ),
+                        onLongPress: () => _showStudentDetails(student),
                       );
                     },
                   ),
@@ -318,6 +388,106 @@ class _AttendancePageState extends State<AttendancePage> {
             ),
         ],
       ),
+    );
+  }
+}
+
+class StudentSearchDelegate extends SearchDelegate {
+  final List<Map<String, dynamic>> students;
+  final String searchType;
+  final Function(String) onSearchChanged;
+  final VoidCallback markAttendance;
+  final Function(int) toggleAttendance;
+
+  StudentSearchDelegate({
+    required this.students,
+    required this.searchType,
+    required this.onSearchChanged,
+    required this.markAttendance,
+    required this.toggleAttendance,
+  });
+
+  @override
+  List<Widget>? buildActions(BuildContext context) {
+    return [
+      IconButton(
+        icon: Icon(Icons.clear),
+        onPressed: () {
+          query = '';
+          onSearchChanged(query);
+        },
+      ),
+    ];
+  }
+
+  @override
+  Widget? buildLeading(BuildContext context) {
+    return IconButton(
+      icon: Icon(Icons.arrow_back),
+      onPressed: () {
+        close(context, null);
+      },
+    );
+  }
+
+  @override
+  Widget buildResults(BuildContext context) {
+    return _buildStudentList();
+  }
+
+  @override
+  Widget buildSuggestions(BuildContext context) {
+    onSearchChanged(query);
+    return _buildStudentList();
+  }
+
+  Widget _buildStudentList() {
+    final filteredStudents = students
+        .where((student) => searchType == 'name'
+            ? student['name'].toLowerCase().contains(query.toLowerCase())
+            : student['roll_number'].toString().contains(query))
+        .toList();
+
+    return ListView.builder(
+      itemCount: filteredStudents.length,
+      itemBuilder: (context, index) {
+        final student = filteredStudents[index];
+        return ListTile(
+          title: Text('${student['name']}'),
+          subtitle: Text('Roll Number: ${student['roll_number']}'),
+          trailing: Switch(
+            value: student['status'],
+            onChanged: (value) {
+              toggleAttendance(index);
+            },
+          ),
+          onLongPress: () {
+            showDialog(
+              context: context,
+              builder: (BuildContext context) {
+                return AlertDialog(
+                  title: Text('${student['name']} Details'),
+                  content: Column(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      Text('Roll Number: ${student['roll_number']}'),
+                      Text('Status: ${student['status'] ? 'Present' : 'Absent'}'),
+                    ],
+                  ),
+                  actions: <Widget>[
+                    TextButton(
+                      child: Text('Close'),
+                      onPressed: () {
+                        Navigator.of(context).pop();
+                      },
+                    ),
+                  ],
+                );
+              },
+            );
+          },
+        );
+      },
     );
   }
 }

@@ -11,7 +11,8 @@ class FeedPage extends StatelessWidget {
       appBar: AppBar(
         title: Text(
           "Attendance App",
-          style: TextStyle(fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: 1.2),
+          style: TextStyle(
+              fontSize: 22, fontWeight: FontWeight.w600, letterSpacing: 1.2),
         ),
         centerTitle: true,
         backgroundColor: Colors.blueAccent,
@@ -21,7 +22,7 @@ class FeedPage extends StatelessWidget {
       body: Padding(
         padding: EdgeInsets.symmetric(horizontal: 16.0, vertical: 20.0),
         child: GridView.count(
-          crossAxisCount: 2, // Creates a grid with 2 columns
+          crossAxisCount: 2,
           crossAxisSpacing: 16.0,
           mainAxisSpacing: 16.0,
           children: [
@@ -56,11 +57,13 @@ class FeedPage extends StatelessWidget {
               title: 'Attendance History',
               onTap: () async {
                 final prefs = await SharedPreferences.getInstance();
-                List<String>? history = prefs.getStringList('attendance_history') ?? [];
+                List<String>? history =
+                    prefs.getStringList('attendance_history') ?? [];
                 Navigator.push(
                   context,
                   MaterialPageRoute(
-                    builder: (context) => AttendanceHistoryPage(history: history),
+                    builder: (context) =>
+                        AttendanceHistoryPage(history: history),
                   ),
                 );
               },
@@ -72,7 +75,10 @@ class FeedPage extends StatelessWidget {
   }
 
   Widget _buildDashboardCard(BuildContext context,
-      {required IconData icon, required Color color, required String title, required VoidCallback onTap}) {
+      {required IconData icon,
+      required Color color,
+      required String title,
+      required VoidCallback onTap}) {
     return GestureDetector(
       onTap: onTap,
       child: Container(
